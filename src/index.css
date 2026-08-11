@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Adding a custom dark background to match the "CineStream" vibe */
+@layer base {
+  body {
+    @apply bg-gray-900 text-white antialiased;
+  }
+}
