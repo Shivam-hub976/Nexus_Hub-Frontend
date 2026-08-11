@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { getImageUrl } from "../services/tmdb";
 
 const MovieCard = ({ movie }) => {
+  // Add state to track image load errors from broken URLs
+  const [imageError, setImageError] = useState(false);
+
   // Resolve the absolute image URL, or get null if poster_path is missing
   const imageUrl = getImageUrl(movie.poster_path);
 
@@ -15,15 +18,16 @@ const MovieCard = ({ movie }) => {
     <article className="flex flex-col bg-gray-800 rounded-xl overflow-hidden shadow-lg transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-900/20 group">
       {/* Poster Section with Aspect Ratio Lock */}
       <div className="relative aspect-[2/3] w-full bg-gray-800 flex items-center justify-center overflow-hidden">
-        {imageUrl ? (
+        {imageUrl && !imageError ? (
           <img
             src={imageUrl}
             alt={`${movie.title} poster`}
             loading="lazy"
+            onError={() => setImageError(true)}
             className="w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-90"
           />
         ) : (
-          // Fallback UI for missing assets
+          // Fallback UI for missing assets or broken links
           <div className="flex flex-col items-center justify-center text-gray-500 p-4 text-center">
             <svg
               className="w-12 h-12 mb-2 opacity-30"
@@ -43,10 +47,12 @@ const MovieCard = ({ movie }) => {
           </div>
         )}
 
-        {/* Absolute Positioned Rating Badge */}
-        <div className="absolute top-3 right-3 bg-black/80 text-yellow-400 text-xs font-bold px-2.5 py-1 rounded-md border border-white/10 backdrop-blur-md shadow-sm">
-          ★ {rating}
-        </div>
+        {/* Absolute Positioned Rating Badge (Hidden if NR) */}
+        {rating !== "NR" && (
+          <div className="absolute top-3 right-3 bg-black/80 text-yellow-400 text-xs font-bold px-2.5 py-1 rounded-md border border-white/10 backdrop-blur-md shadow-sm">
+            ★ {rating}
+          </div>
+        )}
       </div>
 
       {/* Movie Meta Information */}

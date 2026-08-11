@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fetchPopularMovies, searchMovies } from "./services/tmdb";
 import MovieCard from "./components/MovieCard";
 import SearchBar from "./components/SearchBar";
@@ -8,9 +8,17 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
 
-  // This effect now listens to searchQuery.
-  // When it changes (after the 500ms debounce), it fetches new data.
+  // Reference for the IntersectionObserver target
+  const loaderRef = useRef(null);
+
+  // Reset to page 1 whenever the user types a new search query
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  // Fetch data when the search query or the page number changes
   useEffect(() => {
     const loadMovies = async () => {
       try {
@@ -18,23 +26,24 @@ const App = () => {
         setError(null);
 
         let data;
-        // If there's a search term, hit the search endpoint. Otherwise, load defaults.
         if (searchQuery.trim().length > 0) {
-          data = await searchMovies(searchQuery, 1);
+          data = await searchMovies(searchQuery, page);
         } else {
-          data = await fetchPopularMovies(1);
+          data = await fetchPopularMovies(page);
         }
 
-        // Handle OMDB returning a "False" response when no movies match
         if (data.results && data.results.length > 0) {
-          setMovies(data.results);
-        } else {
+          // If page is 1, replace state. If page > 1, spread and append.
+          setMovies((prev) =>
+            page === 1 ? data.results : [...prev, ...data.results],
+          );
+        } else if (page === 1) {
           setMovies([]);
           setError(`No results found for "${searchQuery}".`);
         }
       } catch (err) {
         setError(
-          "Failed to fetch movies. Please check your API key and network connection.",
+          "Failed to fetch movies. Please check your network connection.",
         );
       } finally {
         setLoading(false);
@@ -42,7 +51,36 @@ const App = () => {
     };
 
     loadMovies();
-  }, [searchQuery]);
+  }, [searchQuery, page]);
+
+  // Native Infinite Scroll implementation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        // Increment page if the loader div is visible and we aren't currently fetching
+        if (target.isIntersecting && !loading) {
+          setPage((prevPage) => prevPage + 1);
+        }
+      },
+      {
+        root: null,
+        rootMargin: "20px",
+        threshold: 1.0,
+      },
+    );
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    // Cleanup phase strictly prevents memory leaks
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [loading]);
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">
@@ -60,7 +98,6 @@ const App = () => {
       </header>
 
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        {/* Render our new SearchBar */}
         <SearchBar onSearch={setSearchQuery} />
 
         {error && (
@@ -82,16 +119,20 @@ const App = () => {
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-          {movies.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} />
+          {movies.map((movie, index) => (
+            <MovieCard key={`${movie.id}-${index}`} movie={movie} />
           ))}
         </div>
 
-        {loading && (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        )}
+        {/* IntersectionObserver Trigger Point */}
+        <div
+          ref={loaderRef}
+          className="w-full h-10 mt-4 flex items-center justify-center"
+        >
+          {loading && (
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          )}
+        </div>
       </main>
     </div>
   );

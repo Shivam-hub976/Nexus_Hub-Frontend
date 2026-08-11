@@ -38,10 +38,10 @@ const mapOmdbToTmdb = (movie) => ({
 export const fetchPopularMovies = async (page = 1) => {
   try {
     const response = await omdbClient.get('/', {
-      params: { s: 'Avengers', page, type: 'movie' },
+      // Changed the search query to 'India'
+      params: { s: 'India', page, type: 'movie' },
     });
     
-    // Map the "Search" array from OMDB to the "results" array expected by App.jsx
     const movies = response.data.Search ? response.data.Search.map(mapOmdbToTmdb) : [];
     return { results: movies };
   } catch (error) {
@@ -49,7 +49,6 @@ export const fetchPopularMovies = async (page = 1) => {
     throw error;
   }
 };
-
 /**
   Searches movies by query term with pagination support.
  */
