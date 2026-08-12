@@ -10,15 +10,17 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
 
-  // Reference for the IntersectionObserver target
+  // NEW: State to track if we should keep asking for more pages
+  const [hasMore, setHasMore] = useState(true);
+
   const loaderRef = useRef(null);
 
-  // Reset to page 1 whenever the user types a new search query
+  // Reset pagination AND hasMore whenever the user types a new search query
   useEffect(() => {
     setPage(1);
+    setHasMore(true);
   }, [searchQuery]);
 
-  // Fetch data when the search query or the page number changes
   useEffect(() => {
     const loadMovies = async () => {
       try {
@@ -33,18 +35,35 @@ const Home = () => {
         }
 
         if (data.results && data.results.length > 0) {
-          // If page is 1, replace state. If page > 1, spread and append.
           setMovies((prev) =>
             page === 1 ? data.results : [...prev, ...data.results],
           );
-        } else if (page === 1) {
-          setMovies([]);
-          setError(`No results found for "${searchQuery}".`);
+
+          // OMDB returns 10 items per page. If it returns less, we've hit the end.
+          if (data.results.length < 10) {
+            setHasMore(false);
+          }
+        } else {
+          // If no results come back, stop trying to fetch more pages
+          setHasMore(false);
+
+          if (page === 1) {
+            setMovies([]);
+            // Handle OMDB's specific behavior for short/broad queries
+            if (searchQuery.length < 3) {
+              setError(
+                `Please enter a more specific search term (3 or more characters).`,
+              );
+            } else {
+              setError(`No results found for "${searchQuery}".`);
+            }
+          }
         }
       } catch (err) {
         setError(
           "Failed to fetch movies. Please check your network connection.",
         );
+        setHasMore(false);
       } finally {
         setLoading(false);
       }
@@ -53,13 +72,12 @@ const Home = () => {
     loadMovies();
   }, [searchQuery, page]);
 
-  // Native Infinite Scroll implementation
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const target = entries[0];
-        // Increment page if the loader div is visible and we aren't currently fetching
-        if (target.isIntersecting && !loading) {
+        // NEW: Only increment the page if we know more data exists (hasMore === true)
+        if (target.isIntersecting && !loading && hasMore) {
           setPage((prevPage) => prevPage + 1);
         }
       },
@@ -74,13 +92,12 @@ const Home = () => {
       observer.observe(loaderRef.current);
     }
 
-    // Cleanup phase strictly prevents memory leaks
     return () => {
       if (loaderRef.current) {
         observer.unobserve(loaderRef.current);
       }
     };
-  }, [loading]);
+  }, [loading, hasMore]); // Added hasMore to dependency array
 
   return (
     <div className="w-full">
@@ -110,15 +127,17 @@ const Home = () => {
         ))}
       </div>
 
-      {/* IntersectionObserver Trigger Point */}
-      <div
-        ref={loaderRef}
-        className="w-full h-10 mt-4 flex items-center justify-center"
-      >
-        {loading && (
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        )}
-      </div>
+      {/* NEW: Only render the loader div if there is more data to fetch */}
+      {hasMore && (
+        <div
+          ref={loaderRef}
+          className="w-full h-10 mt-4 flex items-center justify-center"
+        >
+          {loading && (
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

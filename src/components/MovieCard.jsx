@@ -53,6 +53,7 @@ const MovieCard = ({ movie }) => {
             src={imageUrl}
             alt={`${movie.title} poster`}
             loading="lazy"
+            decoding="async"
             onError={() => setImageError(true)}
             className="w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-90"
           />
