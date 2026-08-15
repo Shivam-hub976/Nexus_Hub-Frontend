@@ -38,7 +38,7 @@ const mapOmdbToTmdb = (movie) => ({
 export const fetchPopularMovies = async (page = 1) => {
   try {
     const response = await omdbClient.get('/', {
-      // Changed the search query to 'India'
+      // Changed the search query to a popular franchise to simulate "popular" movies
       params: { s: 'India', page, type: 'movie' },
     });
     

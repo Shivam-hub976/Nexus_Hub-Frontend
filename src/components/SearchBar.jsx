@@ -14,7 +14,7 @@ const SearchBar = ({ onSearch }) => {
   }, [searchTerm, onSearch]);
 
   return (
-    <div className="relative max-w-2xl mx-auto mb-8 w-full px-4 sm:px-0">
+    <div className="relative max-w-2xl mx-auto mb-6 w-full group">
       <label htmlFor="movie-search" className="sr-only">
         Search for movies
       </label>
@@ -24,14 +24,14 @@ const SearchBar = ({ onSearch }) => {
         placeholder="Search for a movie..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full px-6 py-4 bg-gray-800 text-white rounded-full border border-gray-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all shadow-lg text-lg"
+        className="w-full px-6 py-4 bg-gray-800/50 backdrop-blur-lg text-white rounded-full border border-white/10 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/30 transition-all duration-300 shadow-lg placeholder-gray-400/80 text-sm sm:text-base font-medium"
       />
       <div
-        className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+        className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-400 transition-colors pointer-events-none"
         aria-hidden="true"
       >
         <svg
-          className="w-6 h-6"
+          className="w-5 h-5 sm:w-6 sm:h-6"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

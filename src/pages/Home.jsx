@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { fetchPopularMovies, searchMovies } from "../services/tmdb";
 import MovieCard from "../components/MovieCard";
 import SearchBar from "../components/SearchBar";
+import MoodMatcher from "../components/MoodMatcher";
 
 const Home = () => {
   const [movies, setMovies] = useState([]);
@@ -9,13 +10,10 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
-
-  // NEW: State to track if we should keep asking for more pages
   const [hasMore, setHasMore] = useState(true);
 
   const loaderRef = useRef(null);
 
-  // Reset pagination AND hasMore whenever the user types a new search query
   useEffect(() => {
     setPage(1);
     setHasMore(true);
@@ -39,17 +37,14 @@ const Home = () => {
             page === 1 ? data.results : [...prev, ...data.results],
           );
 
-          // OMDB returns 10 items per page. If it returns less, we've hit the end.
           if (data.results.length < 10) {
             setHasMore(false);
           }
         } else {
-          // If no results come back, stop trying to fetch more pages
           setHasMore(false);
 
           if (page === 1) {
             setMovies([]);
-            // Handle OMDB's specific behavior for short/broad queries
             if (searchQuery.length < 3) {
               setError(
                 `Please enter a more specific search term (3 or more characters).`,
@@ -76,7 +71,6 @@ const Home = () => {
     const observer = new IntersectionObserver(
       (entries) => {
         const target = entries[0];
-        // NEW: Only increment the page if we know more data exists (hasMore === true)
         if (target.isIntersecting && !loading && hasMore) {
           setPage((prevPage) => prevPage + 1);
         }
@@ -97,44 +91,58 @@ const Home = () => {
         observer.unobserve(loaderRef.current);
       }
     };
-  }, [loading, hasMore]); // Added hasMore to dependency array
+  }, [loading, hasMore]);
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+
       <SearchBar onSearch={setSearchQuery} />
 
+      <MoodMatcher onSearch={setSearchQuery} />
+
       {error && (
-        <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg text-center mb-8">
-          {error}
+        <div className="max-w-2xl mx-auto bg-red-900/20 backdrop-blur-md border border-red-500/30 text-red-300 px-6 py-4 rounded-xl text-center mb-10 shadow-lg">
+          <p className="font-medium">{error}</p>
         </div>
       )}
 
+      {/* Premium Section Headers */}
       {!searchQuery && !error && (
-        <h2 className="text-xl font-bold text-white mb-6 border-l-4 border-blue-500 pl-3">
-          Popular Right Now
-        </h2>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-1.5 h-7 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(96,165,250,0.6)]"></div>
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide">
+            Popular Right Now
+          </h2>
+        </div>
       )}
 
       {searchQuery && !error && (
-        <h2 className="text-xl font-bold text-white mb-6 border-l-4 border-blue-500 pl-3">
-          Search Results
-        </h2>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-1.5 h-7 bg-gradient-to-b from-purple-400 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(167,139,250,0.6)]"></div>
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide">
+            Search Results
+          </h2>
+        </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
         {movies.map((movie, index) => (
           <MovieCard key={`${movie.id}-${index}`} movie={movie} />
         ))}
       </div>
 
-      {/* NEW: Only render the loader div if there is more data to fetch */}
       {hasMore && (
         <div
           ref={loaderRef}
-          className="w-full h-10 mt-4 flex items-center justify-center"
+          className="w-full h-20 mt-8 flex items-center justify-center"
         >
           {loading && (
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="relative flex items-center justify-center">
+              <div className="absolute w-10 h-10 border-4 border-blue-500/20 rounded-full"></div>
+              <div className="w-10 h-10 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
+            </div>
           )}
         </div>
       )}
