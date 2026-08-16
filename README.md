@@ -2,7 +2,7 @@
 
 ![CineStream Banner](https://via.placeholder.com/1200x400/111827/3b82f6?text=CineStream+-+Premium+Media+Discovery)
 
-**Live Demo:** [Insert Live Link Here](#)
+**Live Demo:** [https://cine-stream-mocha-eight.vercel.app/](#)
 
 ## Overview
 
