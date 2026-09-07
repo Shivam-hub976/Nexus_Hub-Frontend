@@ -26,3 +26,30 @@ export const fetchPosts = async () => {
         throw error; // Rethrow the error so the calling function can handle it
     }
 };
+
+/* POST /posts
+Sends new post data to the Express backend to be saved in the MongoDB.
+@param {object} postData - The data from our React form (title, content, authorId) */
+export const createPost = async (postData) => {
+    try {
+        const response = await nexusClient.post('/posts', postData);
+        //Backend returns the newly created post in response.data.data
+        return response.data.data;
+    } catch (error) {
+        console.error('Error creating post in nexus backend:', error);
+        throw error; // Rethrow the error so the calling function can handle it
+    }
+};
+
+/* DELETE /posts/:id
+TElls the Express backend to delete a specific document by its MongoDB _id.
+@param {string} postId - The unique _id of the document*/
+export const deletePost = async (postId) => {
+    try {
+        const response = await nexusClient.delete(`/posts/${postId}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error deleting post ${postId}:`, error);
+        throw error;
+    }
+};
