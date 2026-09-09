@@ -39,3 +39,13 @@
 39. Explain this error "...".
 40. What is the good way to show the modernise ui for media explorer websites?
 41. Give me an overview if MERN Stack is used in netflix or any similar webs, then how it should be optimized.
+
+## Fullstack Integration & Pipeline Engineering (Sprint 11)
+
+39. Why did we abstract our backend connection logic into a dedicated `nexus.js` service file instead of writing `axios.post` directly inside our UI components?
+40. What is the fundamental difference between sending data as `application/json` versus `multipart/form-data`?
+41. How does the native HTML5 `FormData` object allow us to package binary files (images) and text into a single API request?
+42. What is an "Optimistic UI Update," and how did we implement it when deleting a community post to make the app feel faster?
+43. Why must we validate the `imageFile.size` on the frontend before dispatching the payload, even if the backend also has a 5MB limit?
+44. How does Vite handle environment variables differently than Node.js, and why must our backend URL variable begin with `VITE_`?
+45. Why did we build a custom Tailwind Modal for the "Delete Post" confirmation instead of using the browser's native `window.confirm()` dialog?
