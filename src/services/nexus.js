@@ -30,9 +30,15 @@ export const fetchPosts = async () => {
 /* POST /posts
 Sends new post data to the Express backend to be saved in the MongoDB.
 @param {object} postData - The data from our React form (title, content, authorId) */
+
+// @param {FormData} postData - The FormData object containing text and image buffer data. This is necessary for file uploads, as it allows us to send both text and binary data in a single request.
 export const createPost = async (postData) => {
     try {
-        const response = await nexusClient.post('/posts', postData);
+        const response = await nexusClient.post('/posts', postData, {
+            headers: {
+                'Content-Type': 'multipart/form-data' // override headers 
+            }
+        });
         //Backend returns the newly created post in response.data.data
         return response.data.data;
     } catch (error) {

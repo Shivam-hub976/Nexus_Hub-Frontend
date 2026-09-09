@@ -2,20 +2,22 @@ import React, { useState, useEffect } from "react";
 import { fetchPosts, createPost, deletePost } from "../services/nexus";
 
 const Community = () => {
-  // Existing States
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // New States for the Form
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     authorId: "6a9790225f24aa47884a56ca",
   });
+
+  const [imageFile, setImageFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // Initial Fetch
+  // New State for Custom Delete Modal
+  const [postToDelete, setPostToDelete] = useState(null);
+
   useEffect(() => {
     const loadCommunityPosts = async () => {
       try {
@@ -30,56 +32,75 @@ const Community = () => {
     loadCommunityPosts();
   }, []);
 
-  // Form Input Handler
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Form Submit Handler
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        // Inline Error State
+        setErrorMsg(
+          "File size exceeds 5MB limit. Please choose a smaller image.",
+        );
+        e.target.value = "";
+        setImageFile(null);
+
+        // Auto-clear the error after 5 seconds
+        setTimeout(() => setErrorMsg(null), 5000);
+        return;
+      }
+      setImageFile(file);
+      setErrorMsg(null); // Clear any existing errors if a valid file is chosen
+    }
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevents browser refresh
+    e.preventDefault();
     setIsSubmitting(true);
     setErrorMsg(null);
 
     try {
-      // Send payload to Express
-      const newPost = await createPost(formData);
+      const payload = new FormData();
+      payload.append("title", formData.title);
+      payload.append("content", formData.content);
+      payload.append("authorId", formData.authorId);
 
-      // Inject new post at the top of the UI locally without refreshing
+      if (imageFile) {
+        payload.append("image", imageFile);
+      }
+
+      const newPost = await createPost(payload);
       setPosts([newPost, ...posts]);
 
-      // Clear the form fields
       setFormData({
         title: "",
         content: "",
         authorId: "6a9790225f24aa47884a56ca",
       });
+      setImageFile(null);
+      document.getElementById("image-upload").value = "";
     } catch (error) {
-      // Axios places backend error responses inside error.response
-      setErrorMsg(
-        error.response?.data?.message ||
-          error.response?.data?.error ||
-          "Failed to create post. Ensure authorId is a valid MongoDB User ID.",
-      );
+      setErrorMsg(error.response?.data?.message || "Failed to create post.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Delete Handler
-  const handleDelete = async (postId) => {
-    // Confirmation dialog so users don't delete accidentally
-    if (!window.confirm("Are you sure you want to delete this post?")) return;
+  // New Modal Handlers instead of window.confirm()
+  const confirmDelete = async () => {
+    if (!postToDelete) return;
 
     try {
-      // Tell backend to delete from MongoDB
-      await deletePost(postId);
-
-      // Filter out the deleted post from the screen
-      setPosts(posts.filter((post) => post._id !== postId));
+      await deletePost(postToDelete);
+      setPosts(posts.filter((post) => post._id !== postToDelete));
     } catch (error) {
       console.error("Failed to delete post:", error);
-      alert("Could not delete the post. Check console for details.");
+      setErrorMsg("Could not delete the post. Please try again.");
+      setTimeout(() => setErrorMsg(null), 5000);
+    } finally {
+      setPostToDelete(null); // Close the modal
     }
   };
 
@@ -89,7 +110,6 @@ const Community = () => {
         Nexus Community
       </h2>
 
-      {/* The Create Post Form */}
       <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-xl mb-10 max-w-2xl">
         <h3 className="text-xl font-semibold mb-4 text-emerald-300">
           Share your thoughts
@@ -119,7 +139,26 @@ const Community = () => {
             ></textarea>
           </div>
 
-          {/* Error Boundary Display */}
+          <div>
+            {/* Explicit 5MB Label limit */}
+            <label className="block text-sm font-medium text-gray-400 mb-2">
+              Optional Thumbnail{" "}
+              <span className="text-emerald-400">(Max 5MB)</span>
+            </label>
+            <input
+              type="file"
+              id="image-upload"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-gray-400
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-emerald-500/20 file:text-emerald-300
+                                hover:file:bg-emerald-500/30 transition-all cursor-pointer"
+            />
+          </div>
+
           {errorMsg && (
             <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
               {errorMsg}
@@ -135,12 +174,11 @@ const Community = () => {
                 : "bg-emerald-500 hover:bg-emerald-400 text-gray-900 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
             }`}
           >
-            {isSubmitting ? "Injecting into Database..." : "Post to Community"}
+            {isSubmitting ? "Publishing Post..." : "Post to Community"}
           </button>
         </form>
       </div>
 
-      {/* The Existing Grid UI */}
       {loading ? (
         <p className="text-gray-400 animate-pulse">
           Establishing secure connection to backend...
@@ -150,12 +188,12 @@ const Community = () => {
           {posts.map((post) => (
             <div
               key={post._id}
-              className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-xl flex flex-col justify-between group relative"
+              className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl flex flex-col justify-between group relative overflow-hidden"
             >
-              {/* Delete Button (Visible on hover in Desktop) */}
+              {/* Changed onClick to open our Custom Modal */}
               <button
-                onClick={() => handleDelete(post._id)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-red-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300"
+                onClick={() => setPostToDelete(post._id)}
+                className="absolute top-4 right-4 text-white hover:text-red-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 z-20 drop-shadow-md bg-black/50 p-2 rounded-full"
                 title="Delete Post"
               >
                 <svg
@@ -163,7 +201,6 @@ const Community = () => {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
                     strokeLinecap="round"
@@ -174,15 +211,27 @@ const Community = () => {
                 </svg>
               </button>
 
-              <div>
+              {post.imageUrl && (
+                <div className="w-full h-48 sm:h-64 overflow-hidden bg-black/40 flex items-center justify-center">
+                  <img
+                    src={post.imageUrl}
+                    alt={post.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+              )}
+
+              <div className="p-6">
                 <h3 className="text-2xl font-bold text-emerald-300 mb-2 pr-8">
                   {post.title}
                 </h3>
                 <p className="text-gray-300 mb-4">{post.content}</p>
+                <span className="text-xs text-gray-500 uppercase tracking-wider block border-t border-white/10 pt-4 mt-2">
+                  {new Date(post.createdAt).toLocaleDateString()}
+                </span>
               </div>
-              <span className="text-xs text-gray-500 uppercase tracking-wider mt-4 block">
-                {new Date(post.createdAt).toLocaleDateString()}
-              </span>
             </div>
           ))}
 
@@ -191,6 +240,33 @@ const Community = () => {
               No posts found in MongoDB. Database is empty.
             </p>
           )}
+        </div>
+      )}
+
+      {/* The Custom Tailwind Modal Overlay */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="bg-gray-900 border border-white/10 p-6 rounded-xl w-full max-w-sm shadow-2xl transform transition-all">
+            <h3 className="text-xl font-bold text-white mb-2">Delete Post?</h3>
+            <p className="text-gray-400 mb-6 text-sm">
+              This action cannot be undone. Are you sure you want to permanently
+              remove this post?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setPostToDelete(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500 hover:text-white transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
