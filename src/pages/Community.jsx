@@ -15,8 +15,13 @@ const Community = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // New State for Custom Delete Modal
+  //Separated States for Modal Error and Success Messages
+  const [deleteErrorMsg, setDeleteErrorMsg] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+
+  // States for Custom Delete Modal & Security PIN
   const [postToDelete, setPostToDelete] = useState(null);
+  const [adminPin, setAdminPin] = useState(""); //New State for PIN
 
   useEffect(() => {
     const loadCommunityPosts = async () => {
@@ -81,6 +86,10 @@ const Community = () => {
       });
       setImageFile(null);
       document.getElementById("image-upload").value = "";
+
+      // Success message on post creation
+      setSuccessMsg("Post published successfully!");
+      setTimeout(() => setSuccessMsg(null), 5000);
     } catch (error) {
       setErrorMsg(error.response?.data?.message || "Failed to create post.");
     } finally {
@@ -88,20 +97,31 @@ const Community = () => {
     }
   };
 
-  // New Modal Handlers instead of window.confirm()
+  // Updated Modal Handlers with PIN Logic
   const confirmDelete = async () => {
     if (!postToDelete) return;
+    setDeleteErrorMsg(null); // Clear previous modal error before trying
 
     try {
-      await deletePost(postToDelete);
+      // Pass the PIN to the API
+      await deletePost(postToDelete, adminPin);
       setPosts(posts.filter((post) => post._id !== postToDelete));
+
+      // Only close modal & show success IF deletion works
+      setPostToDelete(null);
+      setAdminPin("");
+      setSuccessMsg("Post deleted successfully!");
+      setTimeout(() => setSuccessMsg(null), 5000);
     } catch (error) {
       console.error("Failed to delete post:", error);
-      setErrorMsg("Could not delete the post. Please try again.");
-      setTimeout(() => setErrorMsg(null), 5000);
-    } finally {
-      setPostToDelete(null); // Close the modal
+      // Grab the specific Unauthorized error from our backend, or use a default
+      setDeleteErrorMsg(
+        error.response?.data?.error ||
+          "Could not delete the post. Please try again.",
+      );
+      setTimeout(() => setDeleteErrorMsg(null), 5000);
     }
+    // Removed the 'finally' block so modal DOES NOT close on error
   };
 
   return (
@@ -109,6 +129,13 @@ const Community = () => {
       <h2 className="text-3xl sm:text-4xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
         Nexus Community
       </h2>
+
+      {/*Global Success Banner*/}
+      {successMsg && (
+        <div className="mb-6 max-w-2xl p-4 bg-emerald-500/20 border border-emerald-500/50 rounded-xl text-emerald-300 text-sm font-medium">
+          ✓ {successMsg}
+        </div>
+      )}
 
       <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-xl mb-10 max-w-2xl">
         <h3 className="text-xl font-semibold mb-4 text-emerald-300">
@@ -248,13 +275,34 @@ const Community = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
           <div className="bg-gray-900 border border-white/10 p-6 rounded-xl w-full max-w-sm shadow-2xl transform transition-all">
             <h3 className="text-xl font-bold text-white mb-2">Delete Post?</h3>
-            <p className="text-gray-400 mb-6 text-sm">
+            <p className="text-gray-400 mb-4 text-sm">
               This action cannot be undone. Are you sure you want to permanently
               remove this post?
             </p>
+
+            {/*  Modal Error Banner */}
+            {deleteErrorMsg && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+                {deleteErrorMsg}
+              </div>
+            )}
+
+            {/* New Input for the Admin PIN */}
+            <input
+              type="password"
+              placeholder="Enter Admin PIN to delete"
+              value={adminPin}
+              onChange={(e) => setAdminPin(e.target.value)}
+              className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-red-400 transition-colors mb-6"
+            />
+
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => setPostToDelete(null)}
+                onClick={() => {
+                  setPostToDelete(null);
+                  setAdminPin(""); // clear PIN on cancel too
+                  setDeleteErrorMsg(null); // Clear error on cancel
+                }}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
               >
                 Cancel

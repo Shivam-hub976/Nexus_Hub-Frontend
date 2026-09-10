@@ -48,11 +48,16 @@ export const createPost = async (postData) => {
 };
 
 /* DELETE /posts/:id
-TElls the Express backend to delete a specific document by its MongoDB _id.
-@param {string} postId - The unique _id of the document*/
-export const deletePost = async (postId) => {
+Tells the Express backend to delete a specific document by its MongoDB _id.
+@param {string} postId - The unique _id of the document
+@param {string} adminPin - The secret PIN for authorization */
+export const deletePost = async (postId, adminPin) => {
     try {
-        const response = await nexusClient.delete(`/posts/${postId}`);
+        const response = await nexusClient.delete(`/posts/${postId}`, {
+            headers: {
+                'x-admin-pin': adminPin // Sending the PIN to backend
+            }
+        });
         return response.data;
     } catch (error) {
         console.error(`Error deleting post ${postId}:`, error);
