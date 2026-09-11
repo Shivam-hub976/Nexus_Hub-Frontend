@@ -4,8 +4,8 @@ A high-fidelity, enterprise-level Single Page Application (SPA) built with React
 
 ## Live Deployments
 
-- **Frontend SPA (Vercel):** `https://nexus-hub-backend-mfaq.onrender.com`
-- **Backend API (Render):** `https://nexus-hub-frontend-mu.vercel.app`
+- **Frontend SPA (Vercel):** `https://nexus-hub-frontend-mu.vercel.app`
+- **Backend API (Render):** `https://nexus-hub-backend-mfaq.onrender.com`
 
 ---
 
